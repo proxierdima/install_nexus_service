@@ -9,6 +9,7 @@ THREADS="6"
 USER="root"
 BIN_PATH="/root/.nexus/bin/nexus-network"
 CLI_BIN="nexus-cli"
+CONFIG_FILE="/root/.nexus/config.json"
 LOG_PATH="/var/log/${SERVICE_NAME}.log"
 SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
 LOGROTATE_FILE="/etc/logrotate.d/${SERVICE_NAME}"
@@ -22,28 +23,46 @@ for cmd in "$BIN_PATH" "$CLI_BIN"; do
   fi
 done
 
-# Получение адреса кошелька
-read -p "Введите адрес кошелька: " WALLET
-if [[ -z "$WALLET" ]]; then
-  echo "❌ Адрес кошелька не может быть пустым"
-  exit 1
+# Установка jq при необходимости
+if ! command -v jq &>/dev/null; then
+  echo "📦 Устанавливаем jq..."
+  apt-get update -y && apt-get install -y jq
 fi
 
-# Регистрация пользователя
-echo "🔐 Регистрируем пользователя..."
-nexus-cli register-user --wallet-address "$WALLET" || {
-  echo "❌ Не удалось зарегистрировать пользователя"
-  exit 1
-}
+# Получение node_id и wallet из config или регистрация
+if [[ -f "$CONFIG_FILE" ]]; then
+  echo "📁 Обнаружен конфиг: $CONFIG_FILE"
+  NODE_ID=$(jq -r '.node_id' "$CONFIG_FILE")
+  WALLET=$(jq -r '.wallet_address' "$CONFIG_FILE")
 
-# Регистрация ноды
-echo "🆔 Регистрируем ноду..."
-NODE_ID=$(nexus-cli register-node | grep "Node registered successfully" | grep -oE '[0-9]+')
-if [[ -z "$NODE_ID" ]]; then
-  echo "❌ Не удалось получить node ID"
-  exit 1
+  if [[ -z "$NODE_ID" || -z "$WALLET" || "$NODE_ID" == "null" || "$WALLET" == "null" ]]; then
+    echo "❌ config.json повреждён или неполный. Удалите и запустите повторно."
+    exit 1
+  fi
+
+  echo "✅ Используем node_id: $NODE_ID"
+else
+  read -p "Введите адрес кошелька: " WALLET
+  if [[ -z "$WALLET" ]]; then
+    echo "❌ Адрес кошелька не может быть пустым"
+    exit 1
+  fi
+
+  echo "🔐 Регистрируем пользователя..."
+  nexus-cli register-user --wallet-address "$WALLET" || {
+    echo "❌ Не удалось зарегистрировать пользователя"
+    exit 1
+  }
+
+  echo "🆔 Регистрируем ноду..."
+  NODE_ID=$(nexus-cli register-node | grep "Node registered successfully" | grep -oE '[0-9]+')
+  if [[ -z "$NODE_ID" ]]; then
+    echo "❌ Не удалось получить node ID"
+    exit 1
+  fi
+
+  echo "✅ Node ID: $NODE_ID"
 fi
-echo "✅ Node ID: $NODE_ID"
 
 # Создание systemd unit-файла
 echo "📦 Создаём systemd unit: $SERVICE_FILE"
@@ -90,7 +109,7 @@ if [[ -f "$MONITOR_SCRIPT" ]]; then
   echo "📡 Обновляем мониторинг: $MONITOR_SCRIPT"
   if ! grep -q "$SERVICE_NAME" "$MONITOR_SCRIPT"; then
     sed -i "/^services=(/ s/)/ \"$SERVICE_NAME\")/" "$MONITOR_SCRIPT"
-    echo "✅ Добавлен $SERVICE_NAME в список мониторинга"
+    echo "✅ Добавлен $SERVICE_NAME в мониторинг"
     systemctl restart server-monitor || echo "⚠️ Не удалось перезапустить мониторинг"
   else
     echo "ℹ️ $SERVICE_NAME уже отслеживается"
@@ -99,6 +118,6 @@ else
   echo "⚠️ Мониторинг-скрипт не найден по пути: $MONITOR_SCRIPT (пропущено)"
 fi
 
-# Вывод статуса
+# Финальный вывод
 echo "✅ Установка завершена!"
 systemctl status "$SERVICE_NAME" --no-pager
