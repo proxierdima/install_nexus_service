@@ -2,7 +2,18 @@
 
 set -e
 
-service nexus-node stop
+# 0. Удаление старого сервиса
+if [[ -f "/etc/systemd/system/nexus-node.service" ]]; then
+  echo "⚠️ Обнаружен существующий systemd-сервис nexus-node"
+  echo "⏹ Останавливаем и удаляем старый сервис..."
+  systemctl stop nexus-node || true
+  systemctl disable nexus-node || true
+  rm -f /etc/systemd/system/nexus-node.service
+  systemctl daemon-reload
+  echo "✅ Старый nexus-node.service удалён"
+else
+  echo "ℹ️ systemd-сервис nexus-node отсутствует — продолжаем"
+fi
 
 curl https://cli.nexus.xyz/ | sh
 
