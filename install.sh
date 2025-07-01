@@ -49,11 +49,39 @@ if [[ -f "$CONFIG_FILE" ]]; then
   WALLET=$(jq -r '.wallet_address' "$CONFIG_FILE")
 
   if [[ -z "$NODE_ID" || -z "$WALLET" || "$NODE_ID" == "null" || "$WALLET" == "null" ]]; then
-    echo "❌ config.json повреждён или неполный. Удалите и запустите повторно."
-    exit 1
-  fi
+    echo "❌ config.json повреждён или неполный."
 
-  echo "✅ Используем node_id: $NODE_ID"
+    read -p "❓ Удалить повреждённый конфиг и зарегистрировать заново? (y/N): " choice
+    if [[ "$choice" =~ ^[Yy]$ ]]; then
+      rm -f "$CONFIG_FILE"
+      echo "🗑️ Удалён: $CONFIG_FILE"
+
+      read -p "Введите адрес кошелька: " WALLET
+      if [[ -z "$WALLET" ]]; then
+        echo "❌ Адрес кошелька не может быть пустым"
+        exit 1
+      fi
+
+      echo "🔐 Регистрируем пользователя..."
+      nexus-cli register-user --wallet-address "$WALLET" || {
+        echo "❌ Не удалось зарегистрировать пользователя"
+        exit 1
+      }
+
+      echo "🆔 Регистрируем ноду..."
+      NODE_ID=$(nexus-cli register-node | grep "Node registered successfully" | grep -oE '[0-9]+')
+      if [[ -z "$NODE_ID" ]]; then
+        echo "❌ Не удалось получить node ID"
+        exit 1
+      fi
+      echo "✅ Node ID: $NODE_ID"
+    else
+      echo "🚫 Прервано пользователем"
+      exit 1
+    fi
+  else
+    echo "✅ Используем node_id: $NODE_ID"
+  fi
 else
   read -p "Введите адрес кошелька: " WALLET
   if [[ -z "$WALLET" ]]; then
@@ -73,7 +101,6 @@ else
     echo "❌ Не удалось получить node ID"
     exit 1
   fi
-
   echo "✅ Node ID: $NODE_ID"
 fi
 
