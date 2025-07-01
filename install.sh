@@ -17,6 +17,8 @@ fi
 
 curl https://cli.nexus.xyz/ | sh
 
+source /root/.bashrc
+
 SERVICE_NAME="nexus-node"
 THREADS="6"
 USER="root"
