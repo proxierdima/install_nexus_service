@@ -2,6 +2,8 @@
 
 set -e
 
+curl https://cli.nexus.xyz/ | sh
+
 SERVICE_NAME="nexus-node"
 THREADS="6"
 USER="root"
