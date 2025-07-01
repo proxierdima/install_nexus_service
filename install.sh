@@ -2,6 +2,8 @@
 
 set -e
 
+service nexus-node stop
+
 curl https://cli.nexus.xyz/ | sh
 
 SERVICE_NAME="nexus-node"
