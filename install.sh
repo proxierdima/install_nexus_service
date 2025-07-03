@@ -205,3 +205,5 @@ fi
 # Финальный вывод
 echo "✅ Установка завершена!"
 systemctl status "$SERVICE_NAME" --no-pager
+tail -f $LOG_PATH
+
