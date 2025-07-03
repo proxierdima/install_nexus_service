@@ -2,6 +2,42 @@
 
 set -e
 
+# 0.1 Проверка на запущенные процессы nexus-network
+echo "🔍 Проверка на запущенные процессы nexus-network..."
+running_pids=$(pgrep -f "nexus-network")
+
+if [[ -n "$running_pids" ]]; then
+  echo "⚠️ Найдено следующее:"
+  echo "$running_pids" | while read pid; do
+    cmdline=$(ps -p $pid -o cmd=)
+    echo "🔸 PID: $pid — $cmdline"
+    
+    # Попытка определить systemd unit
+    unit=$(ps -o unit= -p "$pid" 2>/dev/null | grep '.service' || true)
+    if [[ -n "$unit" ]]; then
+      echo "🔧 Обнаружен systemd unit: $unit"
+      echo "⏹ Останавливаем и отключаем $unit"
+      systemctl stop "$unit" || true
+      systemctl disable "$unit" || true
+    else
+      echo "⚠️ Не найден systemd unit — пытаемся мягко завершить $pid"
+      kill "$pid" || true
+      sleep 5
+
+      if kill -0 "$pid" 2>/dev/null; then
+        echo "❌ Процесс $pid всё ещё жив — применяем kill -9"
+        kill -9 "$pid" || true
+      else
+        echo "✅ Процесс $pid завершился корректно"
+      fi
+    fi
+  done
+
+  echo "✅ Все процессы nexus-network обработаны"
+else
+  echo "✅ nexus-network не запущен — продолжаем"
+fi
+
 # 0. Удаление старого сервиса
 if [[ -f "/etc/systemd/system/nexus-node.service" ]]; then
   echo "⚠️ Обнаружен существующий systemd-сервис nexus-node"
