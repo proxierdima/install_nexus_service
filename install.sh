@@ -2,7 +2,7 @@
 
 set -e
 
-# 0.1 Проверка на запущенные процессы nexus-network
+# 0. Проверка и остановка любых процессов nexus-network
 echo "🔍 Проверка на запущенные процессы nexus-network..."
 running_pids=$(pgrep -f "nexus-network")
 
@@ -38,10 +38,10 @@ else
   echo "✅ nexus-network не запущен — продолжаем"
 fi
 
-# 0. Удаление старого сервиса
+# 0.1 Удаление старого nexus-node.service (если он существует)
 if [[ -f "/etc/systemd/system/nexus-node.service" ]]; then
-  echo "⚠️ Обнаружен существующий systemd-сервис nexus-node"
-  echo "⏹ Останавливаем и удаляем старый сервис..."
+  echo "⚠️ Обнаружен systemd-сервис nexus-node"
+  echo "⏹ Останавливаем и удаляем старый nexus-node.service..."
   systemctl stop nexus-node || true
   systemctl disable nexus-node || true
   rm -f /etc/systemd/system/nexus-node.service
