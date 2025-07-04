@@ -4,7 +4,7 @@ set -e
 
 # 0. Проверка и остановка любых процессов nexus-network
 echo "🔍 Проверка на запущенные процессы nexus-network..."
-running_pids=$(pgrep -f "nexus")
+running_pids=$(pgrep -f "nexus-network")
 
 if [[ -n "$running_pids" ]]; then
   echo "⚠️ Найдено следующее:"
