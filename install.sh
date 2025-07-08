@@ -27,7 +27,7 @@ CONFIG_FILE="/root/.nexus/config.json"
 LOG_PATH="/var/log/${SERVICE_NAME}.log"
 SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
 LOGROTATE_FILE="/etc/logrotate.d/${SERVICE_NAME}"
-MONITOR_SCRIPT="/opt/monitor.sh"
+MONITOR_SCRIPT="/opt/monitor/monitor.sh"
 
 # Ввод количества потоков
 read -p "Введите количество потоков (например: 6): " THREADS
