@@ -17,6 +17,7 @@ fi
 
 # Установка nexus-cli
 curl -s https://cli.nexus.xyz/ | sh
+source /root/.bashrc
 
 # Переменные
 SERVICE_NAME="nexus-node"
